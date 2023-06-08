@@ -1132,6 +1132,71 @@ TunInitializeEx(
             MiniportAdapterHandle, (PNDIS_MINIPORT_ADAPTER_ATTRIBUTES)&AdapterGeneralAttributes)))
         goto cleanupFreeNblPool;
 
+    NDIS_OFFLOAD Offload = {
+        .Header = { .Type = NDIS_OBJECT_TYPE_OFFLOAD,
+                    .Revision = NDIS_OFFLOAD_REVISION_3,
+                    .Size = NDIS_SIZEOF_NDIS_OFFLOAD_REVISION_3 },
+        .LsoV1 = {
+            .IPv4 = { .Encapsulation = NDIS_ENCAPSULATION_IEEE_802_3,
+                      .MaxOffLoadSize = 65535,
+                      .MinSegmentCount = 1,
+                      .TcpOptions = NDIS_OFFLOAD_SUPPORTED,
+                      .IpOptions = NDIS_OFFLOAD_SUPPORTED }
+        },
+        .LsoV2 = {
+            .IPv4 = { .Encapsulation = NDIS_ENCAPSULATION_IEEE_802_3,
+                      .MaxOffLoadSize = 65535,
+                      .MinSegmentCount = 1, },
+            .IPv6 = { .Encapsulation = NDIS_ENCAPSULATION_IEEE_802_3,
+                      .MaxOffLoadSize = 65535,
+                      .MinSegmentCount = 1,
+                      .IpExtensionHeadersSupported = NDIS_OFFLOAD_SUPPORTED,
+                      .TcpOptionsSupported = NDIS_OFFLOAD_SUPPORTED, }
+        },
+        .Checksum = {
+            .IPv4Transmit = { .Encapsulation = NDIS_ENCAPSULATION_IEEE_802_3,
+                              .IpOptionsSupported = NDIS_OFFLOAD_SUPPORTED,
+                              .TcpOptionsSupported = NDIS_OFFLOAD_SUPPORTED,
+                              .TcpChecksum = NDIS_OFFLOAD_SUPPORTED,
+                              .UdpChecksum = NDIS_OFFLOAD_SUPPORTED,
+                              .IpChecksum = NDIS_OFFLOAD_SUPPORTED },
+            .IPv4Receive = { .Encapsulation = NDIS_ENCAPSULATION_IEEE_802_3,
+                             .IpOptionsSupported = NDIS_OFFLOAD_SUPPORTED,
+                             .TcpOptionsSupported = NDIS_OFFLOAD_SUPPORTED,
+                             .TcpChecksum = NDIS_OFFLOAD_SUPPORTED,
+                             .UdpChecksum = NDIS_OFFLOAD_SUPPORTED,
+                             .IpChecksum = NDIS_OFFLOAD_SUPPORTED },
+            .IPv6Transmit = { .Encapsulation = NDIS_ENCAPSULATION_IEEE_802_3,
+                              .IpExtensionHeadersSupported = NDIS_OFFLOAD_SUPPORTED,
+                              .TcpOptionsSupported = NDIS_OFFLOAD_SUPPORTED,
+                              .TcpChecksum = NDIS_OFFLOAD_SUPPORTED,
+                              .UdpChecksum = NDIS_OFFLOAD_SUPPORTED },
+            .IPv6Receive = { .Encapsulation = NDIS_ENCAPSULATION_IEEE_802_3,
+                             .IpExtensionHeadersSupported = NDIS_OFFLOAD_SUPPORTED,
+                             .TcpOptionsSupported = NDIS_OFFLOAD_SUPPORTED,
+                             .TcpChecksum = NDIS_OFFLOAD_SUPPORTED,
+                             .UdpChecksum = NDIS_OFFLOAD_SUPPORTED } 
+        }
+    };
+    NDIS_TCP_CONNECTION_OFFLOAD ConnectionOffload = {
+        .Header = { .Type = NDIS_OBJECT_TYPE_DEFAULT,
+                    .Revision = NDIS_TCP_CONNECTION_OFFLOAD_REVISION_1,
+                    .Size = NDIS_SIZEOF_TCP_CONNECTION_OFFLOAD_REVISION_1 },
+    };
+    NDIS_MINIPORT_ADAPTER_OFFLOAD_ATTRIBUTES AdapterOffloadAttributes = {
+        .Header = { .Type = NDIS_OBJECT_TYPE_MINIPORT_ADAPTER_OFFLOAD_ATTRIBUTES,
+                    .Revision = NDIS_MINIPORT_ADAPTER_OFFLOAD_ATTRIBUTES_REVISION_1,
+                    .Size = NDIS_SIZEOF_MINIPORT_ADAPTER_OFFLOAD_ATTRIBUTES_REVISION_1 },
+        .DefaultOffloadConfiguration = &Offload,
+        .HardwareOffloadCapabilities = &Offload,
+        .DefaultTcpConnectionOffloadConfiguration = &ConnectionOffload,
+        .TcpConnectionOffloadHardwareCapabilities = &ConnectionOffload,
+    };
+    if (Status = NDIS_STATUS_FAILURE,
+        !NT_SUCCESS(NdisMSetMiniportAttributes(
+            MiniportAdapterHandle, (PNDIS_MINIPORT_ADAPTER_ATTRIBUTES)&AdapterOffloadAttributes)))
+        goto cleanupFreeNblPool;
+
     return NDIS_STATUS_SUCCESS;
 
 cleanupFreeNblPool:
